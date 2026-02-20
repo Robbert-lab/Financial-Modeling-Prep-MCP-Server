@@ -26,10 +26,13 @@ export interface ToolceptionConfig {
   moduleLoaders: Record<string, ModuleLoader>;
   startup: {
     mode: 'DYNAMIC' | 'STATIC';
-    toolsets?: string[] | 'ALL';  // Changed from initialToolsets in toolception 0.5.1 - matches toolception's type
+    toolsets?: string[] | 'ALL';
   };
   context: {
     accessToken?: string;
+    config?: {
+      FMP_ACCESS_TOKEN?: string;
+    };
     [key: string]: any;
   };
   sessionContext?: SessionContextConfig;
@@ -76,6 +79,9 @@ export class ModeConfigMapper {
   ): ToolceptionConfig {
     const catalog = this.buildCatalog();
     const loaders = moduleLoaders || {};
+    
+    // Always use environment variable as fallback
+    const resolvedToken = accessToken || process.env.FMP_ACCESS_TOKEN;
 
     switch (mode) {
       case 'DYNAMIC_TOOL_DISCOVERY':
@@ -86,17 +92,19 @@ export class ModeConfigMapper {
             mode: 'DYNAMIC'
           },
           context: {
-            accessToken
+            accessToken: resolvedToken,
+            config: {
+              FMP_ACCESS_TOKEN: resolvedToken
+            }
           },
           sessionContext: this.buildSessionContextConfig(),
           exposurePolicy: {
-            namespaceToolsWithSetKey: false, // Flat namespace per user requirement
-            maxActiveToolsets: undefined // No limit
+            namespaceToolsWithSetKey: false,
+            maxActiveToolsets: undefined
           }
         };
 
       case 'STATIC_TOOL_SETS': {
-        // Get toolsets from enforcer (server-level configuration)
         const toolsets = this.resolveToolSets(enforcer);
 
         return {
@@ -104,10 +112,13 @@ export class ModeConfigMapper {
           moduleLoaders: loaders,
           startup: {
             mode: 'STATIC',
-            toolsets: toolsets  // Changed from initialToolsets in toolception 0.5.1
+            toolsets: toolsets
           },
           context: {
-            accessToken
+            accessToken: resolvedToken,
+            config: {
+              FMP_ACCESS_TOKEN: resolvedToken
+            }
           },
           sessionContext: this.buildSessionContextConfig(),
           exposurePolicy: {
@@ -118,16 +129,18 @@ export class ModeConfigMapper {
       }
 
       case 'ALL_TOOLS': {
-        // Load all available toolsets using the "ALL" shorthand
         return {
           catalog,
           moduleLoaders: loaders,
           startup: {
             mode: 'STATIC',
-            toolsets: 'ALL'  // Changed from initialToolsets array in toolception 0.5.1
+            toolsets: 'ALL'
           },
           context: {
-            accessToken
+            accessToken: resolvedToken,
+            config: {
+              FMP_ACCESS_TOKEN: resolvedToken
+            }
           },
           sessionContext: this.buildSessionContextConfig(),
           exposurePolicy: {
