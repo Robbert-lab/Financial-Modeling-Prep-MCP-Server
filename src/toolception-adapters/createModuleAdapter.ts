@@ -63,9 +63,10 @@ export function createModuleAdapter(
     const collector = new ToolCollector();
 
     // Extract access token from context
-    // Session context FMP_ACCESS_TOKEN takes priority (shallow merge puts it on top)
-    // Falls back to server-level accessToken
-    const accessToken = (context as ModuleLoaderContext)?.FMP_ACCESS_TOKEN
+    // Environment variable takes priority (for self-hosted Railway deployment)
+    // Falls back to session-level FMP_ACCESS_TOKEN, then server-level accessToken
+    const accessToken = process.env.FMP_ACCESS_TOKEN
+      || (context as ModuleLoaderContext)?.FMP_ACCESS_TOKEN
       || (context as ModuleLoaderContext)?.accessToken;
 
     try {

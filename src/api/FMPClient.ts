@@ -21,22 +21,26 @@ export class FMPClient {
   private getApiKey(context?: {
     config?: { FMP_ACCESS_TOKEN?: string };
   }): string {
-    const configApiKey = context?.config?.FMP_ACCESS_TOKEN;
+    // First: environment variable (for self-hosted Railway deployment)
+    const envApiKey = process.env.FMP_ACCESS_TOKEN;
+    if (envApiKey) {
+      return envApiKey;
+    }
 
+    // Second: context config (for session-based clients)
+    const configApiKey = context?.config?.FMP_ACCESS_TOKEN;
     if (configApiKey) {
       return configApiKey;
     }
 
-    // Fall back to constructor parameter or environment variable
-    const apiKey = this.apiKey || process.env.FMP_ACCESS_TOKEN;
-
-    if (!apiKey) {
-      throw new Error(
-        "FMP_ACCESS_TOKEN is required for this operation. Please provide it in the configuration."
-      );
+    // Third: constructor parameter
+    if (this.apiKey) {
+      return this.apiKey;
     }
 
-    return apiKey;
+    throw new Error(
+      "FMP_ACCESS_TOKEN is required for this operation. Please provide it in the configuration."
+    );
   }
 
   protected async get<T>(
